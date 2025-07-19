@@ -30,6 +30,7 @@ type Config struct {
 	Address                string        `yaml:"address"`
 	APIKey                 string        `yaml:"apiKey"`
 	Proxy                  string        `yaml:"proxy"`
+	BaseURL                string        `yaml:"baseURL"`  // 新增：自定义Claude API基础域名
 	ChatDelete             bool          `yaml:"chatDelete"`
 	MaxChatHistoryLength   int           `yaml:"maxChatHistoryLength"`
 	RetryCount             int           `yaml:"retryCount"`
@@ -147,6 +148,11 @@ func loadConfigFromYAML(configPath string) (*Config, error) {
 	if config.Address == "" {
 		config.Address = "0.0.0.0:8080"
 	}
+	
+	// 如果BaseURL为空，使用默认值
+	if config.BaseURL == "" {
+		config.BaseURL = "https://claude.ai"
+	}
 
 	return &config, nil
 }
@@ -168,6 +174,8 @@ func loadConfigFromEnv() *Config {
 		APIKey: os.Getenv("APIKEY"),
 		// 设置代理地址
 		Proxy: os.Getenv("PROXY"),
+		// 设置自定义Claude API基础域名
+		BaseURL: os.Getenv("BASE_URL"),
 		// 自动删除聊天
 		ChatDelete: os.Getenv("CHAT_DELETE") != "false",
 		// 设置最大聊天历史长度
@@ -190,6 +198,12 @@ func loadConfigFromEnv() *Config {
 	if config.Address == "" {
 		config.Address = "0.0.0.0:8080"
 	}
+	
+	// 如果BaseURL为空，使用默认值
+	if config.BaseURL == "" {
+		config.BaseURL = "https://claude.ai"
+	}
+	
 	return config
 }
 
@@ -232,6 +246,7 @@ func init() {
 	logger.Info(fmt.Sprintf("Address: %s", ConfigInstance.Address))
 	logger.Info(fmt.Sprintf("APIKey: %s", ConfigInstance.APIKey))
 	logger.Info(fmt.Sprintf("Proxy: %s", ConfigInstance.Proxy))
+	logger.Info(fmt.Sprintf("BaseURL: %s", ConfigInstance.BaseURL))
 	logger.Info(fmt.Sprintf("ChatDelete: %t", ConfigInstance.ChatDelete))
 	logger.Info(fmt.Sprintf("MaxChatHistoryLength: %d", ConfigInstance.MaxChatHistoryLength))
 	logger.Info(fmt.Sprintf("NoRolePrefix: %t", ConfigInstance.NoRolePrefix))
