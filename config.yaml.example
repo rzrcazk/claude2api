@@ -19,6 +19,11 @@ apiKey: "your_api_key"
 # Proxy address (optional)
 proxy: ""
 
+# Custom Claude API base URL (default: "https://claude.ai")
+# You can use this to set a custom domain that replaces claude.ai
+# Example: "https://your-custom-claude-domain.com"
+baseURL: "https://claude.ai"
+
 # Chat deletion setting (default: true)
 chatDelete: true
 
