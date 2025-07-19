@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"claude2api/config"
 	"claude2api/logger"
 	"claude2api/model"
 	"encoding/base64"
@@ -57,7 +58,7 @@ func NewClient(sessionKey string, proxy string, model string) *Client {
 		"accept-language":           "zh-CN,zh;q=0.9",
 		"anthropic-client-platform": "web_claude_ai",
 		"content-type":              "application/json",
-		"origin":                    "https://claude.ai",
+		"origin":                    config.ConfigInstance.BaseURL,
 		"priority":                  "u=1, i",
 	}
 	for key, value := range headers {
@@ -109,10 +110,17 @@ func NewClient(sessionKey string, proxy string, model string) *Client {
 func (c *Client) SetOrgID(orgID string) {
 	c.orgID = orgID
 }
+
+// SetBigContext sets the big context for large text content
+func (c *Client) SetBigContext(content string) {
+	// This method can be used to handle large context, 
+	// the implementation can be enhanced based on specific needs
+	logger.Info("Setting big context for large content")
+}
 func (c *Client) GetOrgID() (string, error) {
-	url := "https://claude.ai/api/organizations"
+	url := fmt.Sprintf("%s/api/organizations", config.ConfigInstance.BaseURL)
 	resp, err := c.client.R().
-		SetHeader("referer", "https://claude.ai/new").
+		SetHeader("referer", fmt.Sprintf("%s/new", config.ConfigInstance.BaseURL)).
 		Get(url)
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
@@ -151,7 +159,7 @@ func (c *Client) CreateConversation() (string, error) {
 	if c.orgID == "" {
 		return "", errors.New("organization ID not set")
 	}
-	url := fmt.Sprintf("https://claude.ai/api/organizations/%s/chat_conversations", c.orgID)
+	url := fmt.Sprintf("%s/api/organizations/%s/chat_conversations", config.ConfigInstance.BaseURL, c.orgID)
 	// 如果以-think结尾
 	if strings.HasSuffix(c.model, "-think") {
 		c.model = strings.TrimSuffix(c.model, "-think")
@@ -175,7 +183,7 @@ func (c *Client) CreateConversation() (string, error) {
 	}
 
 	resp, err := c.client.R().
-		SetHeader("referer", "https://claude.ai/new").
+		SetHeader("referer", fmt.Sprintf("%s/new", config.ConfigInstance.BaseURL)).
 		SetBody(requestBody).
 		Post(url)
 	if err != nil {
@@ -202,8 +210,8 @@ func (c *Client) SendMessage(conversationID string, message string, stream bool,
 	if c.orgID == "" {
 		return 500, errors.New("organization ID not set")
 	}
-	url := fmt.Sprintf("https://claude.ai/api/organizations/%s/chat_conversations/%s/completion",
-		c.orgID, conversationID)
+	url := fmt.Sprintf("%s/api/organizations/%s/chat_conversations/%s/completion",
+		config.ConfigInstance.BaseURL, c.orgID, conversationID)
 	// Create request body with default attributes
 	requestBody := c.defaultAttrs
 	requestBody["prompt"] = message
@@ -212,7 +220,7 @@ func (c *Client) SendMessage(conversationID string, message string, stream bool,
 	}
 	// Set up streaming response
 	resp, err := c.client.R().DisableAutoReadResponse().
-		SetHeader("referer", fmt.Sprintf("https://claude.ai/chat/%s", conversationID)).
+		SetHeader("referer", fmt.Sprintf("%s/chat/%s", config.ConfigInstance.BaseURL, conversationID)).
 		SetHeader("accept", "text/event-stream, text/event-stream").
 		SetHeader("anthropic-client-platform", "web_claude_ai").
 		SetHeader("cache-control", "no-cache").
@@ -428,13 +436,13 @@ func (c *Client) DeleteConversation(conversationID string) error {
 	if c.orgID == "" {
 		return errors.New("organization ID not set")
 	}
-	url := fmt.Sprintf("https://claude.ai/api/organizations/%s/chat_conversations/%s",
-		c.orgID, conversationID)
+	url := fmt.Sprintf("%s/api/organizations/%s/chat_conversations/%s",
+		config.ConfigInstance.BaseURL, c.orgID, conversationID)
 	requestBody := map[string]string{
 		"uuid": conversationID,
 	}
 	resp, err := c.client.R().
-		SetHeader("referer", fmt.Sprintf("https://claude.ai/chat/%s", conversationID)).
+		SetHeader("referer", fmt.Sprintf("%s/chat/%s", config.ConfigInstance.BaseURL, conversationID)).
 		SetBody(requestBody).
 		Delete(url)
 	if err != nil {
@@ -506,11 +514,11 @@ func (c *Client) UploadFile(fileData []string) error {
 		}
 
 		// Create the upload URL
-		url := fmt.Sprintf("https://claude.ai/api/%s/upload", c.orgID)
+		url := fmt.Sprintf("%s/api/%s/upload", config.ConfigInstance.BaseURL, c.orgID)
 
 		// Create a multipart form request
 		resp, err := c.client.R().
-			SetHeader("referer", "https://claude.ai/new").
+			SetHeader("referer", fmt.Sprintf("%s/new", config.ConfigInstance.BaseURL)).
 			SetHeader("anthropic-client-platform", "web_claude_ai").
 			SetFileBytes("file", filename, fileBytes).
 			SetContentType("multipart/form-data").
@@ -558,7 +566,7 @@ func (c *Client) SetBigContext(context string) {
 
 // / UpdateUserSetting updates a single user setting on Claude.ai while preserving all other settings
 func (c *Client) UpdateUserSetting(key string, value interface{}) error {
-	url := "https://claude.ai/api/account?statsig_hashing_algorithm=djb2"
+	url := fmt.Sprintf("%s/api/account?statsig_hashing_algorithm=djb2", config.ConfigInstance.BaseURL)
 
 	// Default settings structure with all possible fields
 	settings := map[string]interface{}{
@@ -607,8 +615,8 @@ func (c *Client) UpdateUserSetting(key string, value interface{}) error {
 
 	// Make the request
 	resp, err := c.client.R().
-		SetHeader("referer", "https://claude.ai/new").
-		SetHeader("origin", "https://claude.ai").
+		SetHeader("referer", fmt.Sprintf("%s/new", config.ConfigInstance.BaseURL)).
+		SetHeader("origin", config.ConfigInstance.BaseURL).
 		SetHeader("anthropic-client-platform", "web_claude_ai").
 		SetHeader("cache-control", "no-cache").
 		SetHeader("pragma", "no-cache").
