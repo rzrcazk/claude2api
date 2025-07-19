@@ -111,12 +111,7 @@ func (c *Client) SetOrgID(orgID string) {
 	c.orgID = orgID
 }
 
-// SetBigContext sets the big context for large text content
-func (c *Client) SetBigContext(content string) {
-	// This method can be used to handle large context, 
-	// the implementation can be enhanced based on specific needs
-	logger.Info("Setting big context for large content")
-}
+
 func (c *Client) GetOrgID() (string, error) {
 	url := fmt.Sprintf("%s/api/organizations", config.ConfigInstance.BaseURL)
 	resp, err := c.client.R().
