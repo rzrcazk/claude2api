@@ -36,6 +36,7 @@ docker run -d \
   -p 8080:8080 \
   -e SESSIONS=sk-ant-sid01-xxxx,sk-ant-sid01-yyyy \
   -e APIKEY=123 \
+  -e BASE_URL=https://claude.ai \
   -e CHAT_DELETE=true \
   -e MAX_CHAT_HISTORY_LENGTH=10000 \
   -e NO_ROLE_PREFIX=false \
@@ -63,6 +64,7 @@ services:
       - ADDRESS=0.0.0.0:8080
       - APIKEY=123
       - PROXY=http://proxy:2080  # Optional
+      - BASE_URL=https://claude.ai  # Custom Claude domain
       - CHAT_DELETE=true
       - MAX_CHAT_HISTORY_LENGTH=10000
       - NO_ROLE_PREFIX=false
@@ -94,8 +96,25 @@ notice: In Hugging Face, /v1 might be blocked, you can use /hf/v1 instead.
 # Clone the repository
 git clone https://github.com/yushangxiao/claude2api.git
 cd claude2api
-cp .env.example .env  
+
+# Create environment file
+cat > .env << 'EOF'
+SESSIONS=sk-ant-sid01-xxxx,sk-ant-sid01-yyyy
+ADDRESS=0.0.0.0:8080
+APIKEY=your_api_key_here
+PROXY=
+BASE_URL=https://claude.ai
+CHAT_DELETE=true
+MAX_CHAT_HISTORY_LENGTH=10000
+NO_ROLE_PREFIX=false
+PROMPT_DISABLE_ARTIFACTS=false
+ENABLE_MIRROR_API=false
+MIRROR_API_PREFIX=
+EOF
+
+# Edit the .env file with your actual values
 vim .env  
+
 # Build the binary
 go build -o claude2api .
 
@@ -124,6 +143,9 @@ address: "0.0.0.0:8080"
 # API authentication key
 apiKey: "123"
 
+# Custom Claude API base URL (replace claude.ai domain)
+baseURL: "https://claude.ai"
+
 # Other configuration options...
 chatDelete: true
 maxChatHistoryLength: 10000
@@ -145,6 +167,7 @@ If `config.yaml` doesn't exist, the application will use environment variables f
 | `ADDRESS` | Server address and port | `0.0.0.0:8080` |
 | `APIKEY` | API key for authentication | Required |
 | `PROXY` | HTTP proxy URL | Optional |
+| `BASE_URL` | Custom Claude API base URL (replace claude.ai domain) | `https://claude.ai` |
 | `CHAT_DELETE` | Whether to delete chat sessions after use | `true` |
 | `MAX_CHAT_HISTORY_LENGTH` | Exceeding will text to file | `10000` |
 | `NO_ROLE_PREFIX` | Do not add role in every message | `false` |
@@ -152,6 +175,46 @@ If `config.yaml` doesn't exist, the application will use environment variables f
 | `ENABLE_MIRROR_API` | Enable direct use sk-ant-* as key | `false` |
 | `MIRROR_API_PREFIX` | Add Prefix to protect Mirror，required when ENABLE_MIRROR_API is true | `` |
 
+## 🌐 Custom Domain Usage
+
+### Problem with claude.ai Access
+
+If you cannot access `claude.ai` directly due to network restrictions or DNS issues, you can now use a custom domain that proxies to Claude's API.
+
+### Solution: Custom Base URL
+
+Set the `BASE_URL` environment variable or `baseURL` in config.yaml to point to your custom domain:
+
+**Environment Variable:**
+```bash
+BASE_URL=https://your-custom-claude-domain.com
+```
+
+**YAML Configuration:**
+```yaml
+baseURL: "https://your-custom-claude-domain.com"
+```
+
+**Docker Example:**
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -e SESSIONS=sk-ant-sid01-xxxx \
+  -e APIKEY=123 \
+  -e BASE_URL=https://your-custom-claude-domain.com \
+  --name claude2api \
+  ghcr.io/yushangxiao/claude2api:latest
+```
+
+### Requirements for Custom Domain
+
+Your custom domain should:
+1. Proxy all requests to `https://claude.ai`
+2. Maintain the same API paths and structure
+3. Forward all headers correctly
+4. Support HTTPS
+
+This eliminates the need for proxy configuration while providing the same functionality.
 
 ## 📝 API Usage
 
