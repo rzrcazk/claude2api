@@ -32,6 +32,7 @@ Api支持访问格式为 openai 格式
    -p 8080:8080 \
    -e SESSIONS=sk-ant-sid01-xxxx,sk-ant-sid01-yyyy \
    -e APIKEY=123 \
+   -e BASE_URL=https://claude.ai \
    -e CHAT_DELETE=true \
    -e MAX_CHAT_HISTORY_LENGTH=10000 \
    -e NO_ROLE_PREFIX=false \
@@ -57,6 +58,7 @@ Api支持访问格式为 openai 格式
        - ADDRESS=0.0.0.0:8080
        - APIKEY=123
        - PROXY=http://proxy:2080  # 可选
+       - BASE_URL=https://claude.ai  # 自定义Claude域名
        - CHAT_DELETE=true
        - MAX_CHAT_HISTORY_LENGTH=10000
        - NO_ROLE_PREFIX=false
@@ -113,6 +115,9 @@ address: "0.0.0.0:8080"
 # API authentication key
 apiKey: "123"
 
+# 自定义Claude API基础域名（替换claude.ai域名）
+baseURL: "https://claude.ai"
+
 # Other configuration options...
 chatDelete: true
 maxChatHistoryLength: 10000
@@ -131,12 +136,54 @@ mirrorApiPrefix: ""
  | `ADDRESS` | 服务器地址和端口 | `0.0.0.0:8080` |
  | `APIKEY` | 用于认证的API密钥 | 必填 |
  | `PROXY` | HTTP代理URL | 可选 |
+ | `BASE_URL` | 自定义Claude API基础域名（替换claude.ai域名） | `https://claude.ai` |
  | `CHAT_DELETE` | 是否在使用后删除聊天会话 | `true` |
  | `MAX_CHAT_HISTORY_LENGTH` | 超出此长度将文本转为文件 | `10000` |
  | `NO_ROLE_PREFIX` |不在每条消息前添加角色 | `false` |
  | `PROMPT_DISABLE_ARTIFACTS` | 添加提示词尝试禁用 ARTIFACTS| `false` |
  | `ENABLE_MIRROR_API` | 允许直接使用 sk-ant-* 作为 key 使用 | `false` |
  | `MIRROR_API_PREFIX` | 对直接使用增加接口前缀，开启ENABLE_MIRROR_API时必填 | `` |
+
+## 🌐 自定义域名使用
+
+### claude.ai 访问问题
+
+如果由于网络限制或DNS问题无法直接访问 `claude.ai`，现在可以使用代理到Claude API的自定义域名。
+
+### 解决方案：自定义基础URL
+
+设置 `BASE_URL` 环境变量或在 config.yaml 中设置 `baseURL` 指向您的自定义域名：
+
+**环境变量：**
+```bash
+BASE_URL=https://your-custom-claude-domain.com
+```
+
+**YAML配置：**
+```yaml
+baseURL: "https://your-custom-claude-domain.com"
+```
+
+**Docker示例：**
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -e SESSIONS=sk-ant-sid01-xxxx \
+  -e APIKEY=123 \
+  -e BASE_URL=https://your-custom-claude-domain.com \
+  --name claude2api \
+  ghcr.io/yushangxiao/claude2api:latest
+```
+
+### 自定义域名要求
+
+您的自定义域名应该：
+1. 将所有请求代理到 `https://claude.ai`
+2. 保持相同的API路径和结构
+3. 正确转发所有头部信息
+4. 支持HTTPS
+
+这样就不需要配置代理，同时提供相同的功能。
  
  ## 📝 API使用
  ### 认证
