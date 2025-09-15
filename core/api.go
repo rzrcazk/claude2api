@@ -61,7 +61,16 @@ func NewClient(sessionKey string, proxy string, model string) *Client {
 		"origin":                    config.ConfigInstance.BaseURL,
 		"priority":                  "u=1, i",
 	}
+	
+	// 打印客户端初始化信息
+	logger.Info(fmt.Sprintf("🔗 [NewClient] 正在初始化Claude API客户端"))
+	logger.Info(fmt.Sprintf("🔗 [NewClient] BaseURL: %s", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [NewClient] Model: %s", model))
+	logger.Info(fmt.Sprintf("🔗 [NewClient] SessionKey: %s", sessionKey))
+	logger.Info(fmt.Sprintf("🔗 [NewClient] Proxy: %s", proxy))
+	
 	for key, value := range headers {
+		logger.Info(fmt.Sprintf("🔗 [NewClient] 设置通用Header: %s = %s", key, value))
 		client.SetCommonHeader(key, value)
 	}
 	// Set cookies
@@ -114,13 +123,27 @@ func (c *Client) SetOrgID(orgID string) {
 
 func (c *Client) GetOrgID() (string, error) {
 	url := fmt.Sprintf("%s/api/organizations", config.ConfigInstance.BaseURL)
+	
+	// 打印详细的请求信息
+	logger.Info(fmt.Sprintf("🔗 [GetOrgID] 请求URL: %s", url))
+	logger.Info(fmt.Sprintf("🔗 [GetOrgID] 请求方法: GET"))
+	logger.Info(fmt.Sprintf("🔗 [GetOrgID] BaseURL: %s", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [GetOrgID] Referer: %s/new", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [GetOrgID] SessionKey: %s", c.SessionKey))
+	
 	resp, err := c.client.R().
 		SetHeader("referer", fmt.Sprintf("%s/new", config.ConfigInstance.BaseURL)).
 		Get(url)
 	if err != nil {
+		logger.Error(fmt.Sprintf("🔗 [GetOrgID] 请求失败: %v", err))
 		return "", fmt.Errorf("request failed: %w", err)
 	}
+	
+	logger.Info(fmt.Sprintf("🔗 [GetOrgID] 响应状态码: %d", resp.StatusCode))
+	logger.Info(fmt.Sprintf("🔗 [GetOrgID] 响应内容: %s", resp.String()))
+	
 	if resp.StatusCode != http.StatusOK {
+		logger.Error(fmt.Sprintf("🔗 [GetOrgID] 意外的状态码: %d", resp.StatusCode))
 		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	type OrgResponse []struct {
@@ -155,6 +178,7 @@ func (c *Client) CreateConversation() (string, error) {
 		return "", errors.New("organization ID not set")
 	}
 	url := fmt.Sprintf("%s/api/organizations/%s/chat_conversations", config.ConfigInstance.BaseURL, c.orgID)
+	
 	// 如果以-think结尾
 	if strings.HasSuffix(c.model, "-think") {
 		c.model = strings.TrimSuffix(c.model, "-think")
@@ -177,14 +201,31 @@ func (c *Client) CreateConversation() (string, error) {
 		delete(requestBody, "model")
 	}
 
+	// 打印详细的请求信息
+	requestBodyJSON, _ := json.Marshal(requestBody)
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] 请求URL: %s", url))
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] 请求方法: POST"))
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] BaseURL: %s", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] OrgID: %s", c.orgID))
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] Model: %s", c.model))
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] Referer: %s/new", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] SessionKey: %s", c.SessionKey))
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] 请求体: %s", string(requestBodyJSON)))
+
 	resp, err := c.client.R().
 		SetHeader("referer", fmt.Sprintf("%s/new", config.ConfigInstance.BaseURL)).
 		SetBody(requestBody).
 		Post(url)
 	if err != nil {
+		logger.Error(fmt.Sprintf("🔗 [CreateConversation] 请求失败: %v", err))
 		return "", fmt.Errorf("request failed: %w", err)
 	}
+	
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] 响应状态码: %d", resp.StatusCode))
+	logger.Info(fmt.Sprintf("🔗 [CreateConversation] 响应内容: %s", resp.String()))
+	
 	if resp.StatusCode != http.StatusCreated {
+		logger.Error(fmt.Sprintf("🔗 [CreateConversation] 意外的状态码: %d", resp.StatusCode))
 		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	var result map[string]interface{}
@@ -207,12 +248,28 @@ func (c *Client) SendMessage(conversationID string, message string, stream bool,
 	}
 	url := fmt.Sprintf("%s/api/organizations/%s/chat_conversations/%s/completion",
 		config.ConfigInstance.BaseURL, c.orgID, conversationID)
+	
 	// Create request body with default attributes
 	requestBody := c.defaultAttrs
 	requestBody["prompt"] = message
 	if c.model != "claude-sonnet-4-20250514" {
 		requestBody["model"] = c.model
 	}
+	
+	// 打印详细的请求信息
+	requestBodyJSON, _ := json.Marshal(requestBody)
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] 请求URL: %s", url))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] 请求方法: POST"))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] BaseURL: %s", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] OrgID: %s", c.orgID))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] ConversationID: %s", conversationID))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] Model: %s", c.model))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] Stream: %t", stream))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] Referer: %s/chat/%s", config.ConfigInstance.BaseURL, conversationID))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] SessionKey: %s", c.SessionKey))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] Message: %s", message))
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] 请求体: %s", string(requestBodyJSON)))
+	
 	// Set up streaming response
 	resp, err := c.client.R().DisableAutoReadResponse().
 		SetHeader("referer", fmt.Sprintf("%s/chat/%s", config.ConfigInstance.BaseURL, conversationID)).
@@ -222,13 +279,19 @@ func (c *Client) SendMessage(conversationID string, message string, stream bool,
 		SetBody(requestBody).
 		Post(url)
 	if err != nil {
+		logger.Error(fmt.Sprintf("🔗 [SendMessage] 请求失败: %v", err))
 		return 500, fmt.Errorf("request failed: %w", err)
 	}
+	
+	logger.Info(fmt.Sprintf("🔗 [SendMessage] 响应状态码: %d", resp.StatusCode))
 	logger.Info(fmt.Sprintf("Claude response status code: %d", resp.StatusCode))
+	
 	if resp.StatusCode == http.StatusTooManyRequests {
+		logger.Error(fmt.Sprintf("🔗 [SendMessage] 速率限制: %d", resp.StatusCode))
 		return http.StatusTooManyRequests, fmt.Errorf("rate limit exceeded")
 	}
 	if resp.StatusCode != http.StatusOK {
+		logger.Error(fmt.Sprintf("🔗 [SendMessage] 意外的状态码: %d", resp.StatusCode))
 		return resp.StatusCode, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	return 200, c.HandleResponse(resp.Body, stream, gc)
@@ -436,14 +499,32 @@ func (c *Client) DeleteConversation(conversationID string) error {
 	requestBody := map[string]string{
 		"uuid": conversationID,
 	}
+	
+	// 打印详细的请求信息
+	requestBodyJSON, _ := json.Marshal(requestBody)
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] 请求URL: %s", url))
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] 请求方法: DELETE"))
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] BaseURL: %s", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] OrgID: %s", c.orgID))
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] ConversationID: %s", conversationID))
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] Referer: %s/chat/%s", config.ConfigInstance.BaseURL, conversationID))
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] SessionKey: %s", c.SessionKey))
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] 请求体: %s", string(requestBodyJSON)))
+	
 	resp, err := c.client.R().
 		SetHeader("referer", fmt.Sprintf("%s/chat/%s", config.ConfigInstance.BaseURL, conversationID)).
 		SetBody(requestBody).
 		Delete(url)
 	if err != nil {
+		logger.Error(fmt.Sprintf("🔗 [DeleteConversation] 请求失败: %v", err))
 		return fmt.Errorf("request failed: %w", err)
 	}
+	
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] 响应状态码: %d", resp.StatusCode))
+	logger.Info(fmt.Sprintf("🔗 [DeleteConversation] 响应内容: %s", resp.String()))
+	
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		logger.Error(fmt.Sprintf("🔗 [DeleteConversation] 意外的状态码: %d", resp.StatusCode))
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	return nil
@@ -511,6 +592,17 @@ func (c *Client) UploadFile(fileData []string) error {
 		// Create the upload URL
 		url := fmt.Sprintf("%s/api/%s/upload", config.ConfigInstance.BaseURL, c.orgID)
 
+		// 打印详细的请求信息
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] 请求URL: %s", url))
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] 请求方法: POST"))
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] BaseURL: %s", config.ConfigInstance.BaseURL))
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] OrgID: %s", c.orgID))
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] Filename: %s", filename))
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] ContentType: %s", contentType))
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] FileSize: %d bytes", len(fileBytes)))
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] Referer: %s/new", config.ConfigInstance.BaseURL))
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] SessionKey: %s", c.SessionKey))
+
 		// Create a multipart form request
 		resp, err := c.client.R().
 			SetHeader("referer", fmt.Sprintf("%s/new", config.ConfigInstance.BaseURL)).
@@ -520,10 +612,15 @@ func (c *Client) UploadFile(fileData []string) error {
 			Post(url)
 
 		if err != nil {
+			logger.Error(fmt.Sprintf("🔗 [UploadFile] 请求失败: %v", err))
 			return fmt.Errorf("request failed: %w", err)
 		}
 
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] 响应状态码: %d", resp.StatusCode))
+		logger.Info(fmt.Sprintf("🔗 [UploadFile] 响应内容: %s", resp.String()))
+
 		if resp.StatusCode != http.StatusOK {
+			logger.Error(fmt.Sprintf("🔗 [UploadFile] 意外的状态码: %d", resp.StatusCode))
 			return fmt.Errorf("unexpected status code: %d, response: %s", resp.StatusCode, resp.String())
 		}
 
@@ -562,6 +659,14 @@ func (c *Client) SetBigContext(context string) {
 // / UpdateUserSetting updates a single user setting on Claude.ai while preserving all other settings
 func (c *Client) UpdateUserSetting(key string, value interface{}) error {
 	url := fmt.Sprintf("%s/api/account?statsig_hashing_algorithm=djb2", config.ConfigInstance.BaseURL)
+	
+	// 打印详细的请求信息
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] 请求URL: %s", url))
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] 请求方法: PUT"))
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] BaseURL: %s", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] Setting Key: %s", key))
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] Setting Value: %v", value))
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] SessionKey: %s", c.SessionKey))
 
 	// Default settings structure with all possible fields
 	settings := map[string]interface{}{
@@ -608,6 +713,12 @@ func (c *Client) UpdateUserSetting(key string, value interface{}) error {
 		"settings": settings,
 	}
 
+	// 打印请求体信息
+	requestBodyJSON, _ := json.Marshal(requestBody)
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] Referer: %s/new", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] Origin: %s", config.ConfigInstance.BaseURL))
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] 请求体: %s", string(requestBodyJSON)))
+
 	// Make the request
 	resp, err := c.client.R().
 		SetHeader("referer", fmt.Sprintf("%s/new", config.ConfigInstance.BaseURL)).
@@ -620,10 +731,15 @@ func (c *Client) UpdateUserSetting(key string, value interface{}) error {
 		Put(url)
 
 	if err != nil {
+		logger.Error(fmt.Sprintf("🔗 [UpdateUserSetting] 请求失败: %v", err))
 		return fmt.Errorf("request failed: %w", err)
 	}
 
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] 响应状态码: %d", resp.StatusCode))
+	logger.Info(fmt.Sprintf("🔗 [UpdateUserSetting] 响应内容: %s", resp.String()))
+
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != 202 {
+		logger.Error(fmt.Sprintf("🔗 [UpdateUserSetting] 意外的状态码: %d", resp.StatusCode))
 		return fmt.Errorf("unexpected status code: %d, response: %s", resp.StatusCode, resp.String())
 	}
 
